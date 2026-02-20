@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FlowLLM Phase 1: Simple 4-Way Intersection - Node Definitions -->
+<nodes>
+    <!-- Center junction (traffic light controlled) -->
+    <node id="center" x="0.0" y="0.0" type="traffic_light"/>
+
+    <!-- Approach nodes (250m from center in each direction) -->
+    <node id="north" x="0.0"    y="250.0"  type="priority"/>
+    <node id="south" x="0.0"    y="-250.0" type="priority"/>
+    <node id="east"  x="250.0"  y="0.0"    type="priority"/>
+    <node id="west"  x="-250.0" y="0.0"    type="priority"/>
+</nodes>

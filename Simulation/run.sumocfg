@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FlowLLM Phase 1: SUMO Configuration -->
+<configuration>
+    <input>
+        <net-file value="intersection.net.xml"/>
+        <route-files value="intersection.rou.xml"/>
+    </input>
+
+    <time>
+        <begin value="0"/>
+        <end value="600"/>
+    </time>
+
+    <processing>
+        <time-to-teleport value="300"/>
+    </processing>
+
+    <report>
+        <verbose value="true"/>
+        <no-step-log value="false"/>
+    </report>
+</configuration>

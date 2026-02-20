@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FlowLLM Phase 1: Simple 4-Way Intersection - Traffic Light Logic -->
+<!-- Standard 4-phase signal: NS green, NS yellow, EW green, EW yellow -->
+<!-- State encoding per connection (16 connections total, 4 per approach): -->
+<!--   Indices 0-3:  north_to_center connections (right, straight x2, left) -->
+<!--   Indices 4-7:  south_to_center connections (right, straight x2, left) -->
+<!--   Indices 8-11: east_to_center  connections (right, straight x2, left) -->
+<!--   Indices 12-15: west_to_center connections (right, straight x2, left) -->
+<!-- G=green, g=green-minor(yield), y=yellow, r=red -->
+<tlLogics>
+    <tlLogic id="center" type="static" programID="0" offset="0">
+        <!-- Phase 1: North-South green (31s) -->
+        <phase duration="31" state="GGGgGGGgrrrrrrrr"/>
+        <!-- Phase 2: North-South yellow (4s) -->
+        <phase duration="4"  state="yyyyyyyyrrrrrrrr"/>
+        <!-- Phase 3: East-West green (31s) -->
+        <phase duration="31" state="rrrrrrrrGGGgGGGg"/>
+        <!-- Phase 4: East-West yellow (4s) -->
+        <phase duration="4"  state="rrrrrrrryyyyyyyy"/>
+    </tlLogic>
+</tlLogics>

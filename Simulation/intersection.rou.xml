@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FlowLLM Phase 1: Simple 4-Way Intersection - Vehicle Routes -->
+<routes>
+    <!-- Vehicle types -->
+    <vType id="car" accel="2.6" decel="4.5" sigma="0.5" length="5.0" maxSpeed="13.89" color="1,1,0"/>
+
+    <!-- Route definitions: all through-movements and turns -->
+    <route id="north_to_south" edges="north_to_center center_to_south"/>
+    <route id="south_to_north" edges="south_to_center center_to_north"/>
+    <route id="east_to_west"   edges="east_to_center center_to_west"/>
+    <route id="west_to_east"   edges="west_to_center center_to_east"/>
+    <route id="north_to_east"  edges="north_to_center center_to_east"/>
+    <route id="north_to_west"  edges="north_to_center center_to_west"/>
+    <route id="south_to_east"  edges="south_to_center center_to_east"/>
+    <route id="south_to_west"  edges="south_to_center center_to_west"/>
+    <route id="east_to_north"  edges="east_to_center center_to_north"/>
+    <route id="east_to_south"  edges="east_to_center center_to_south"/>
+    <route id="west_to_north"  edges="west_to_center center_to_north"/>
+    <route id="west_to_south"  edges="west_to_center center_to_south"/>
+
+    <!-- === Vehicle Flows (600s simulation, ~720 vehicles total) === -->
+
+    <!-- North-South corridor: dominant flow -->
+    <flow id="flow_ns" type="car" route="north_to_south" begin="0" end="600" probability="0.25" departLane="best" departSpeed="max"/>
+    <flow id="flow_sn" type="car" route="south_to_north" begin="0" end="600" probability="0.25" departLane="best" departSpeed="max"/>
+
+    <!-- East-West corridor: moderate flow -->
+    <flow id="flow_ew" type="car" route="east_to_west"   begin="0" end="600" probability="0.15" departLane="best" departSpeed="max"/>
+    <flow id="flow_we" type="car" route="west_to_east"   begin="0" end="600" probability="0.15" departLane="best" departSpeed="max"/>
+
+    <!-- Turning movements: light flow -->
+    <flow id="flow_ne" type="car" route="north_to_east"  begin="0" end="600" probability="0.05" departLane="best" departSpeed="max"/>
+    <flow id="flow_nw" type="car" route="north_to_west"  begin="0" end="600" probability="0.05" departLane="best" departSpeed="max"/>
+    <flow id="flow_se" type="car" route="south_to_east"  begin="0" end="600" probability="0.05" departLane="best" departSpeed="max"/>
+    <flow id="flow_sw" type="car" route="south_to_west"  begin="0" end="600" probability="0.05" departLane="best" departSpeed="max"/>
+    <flow id="flow_en" type="car" route="east_to_north"  begin="0" end="600" probability="0.03" departLane="best" departSpeed="max"/>
+    <flow id="flow_es" type="car" route="east_to_south"  begin="0" end="600" probability="0.03" departLane="best" departSpeed="max"/>
+    <flow id="flow_wn" type="car" route="west_to_north"  begin="0" end="600" probability="0.03" departLane="best" departSpeed="max"/>
+    <flow id="flow_ws" type="car" route="west_to_south"  begin="0" end="600" probability="0.03" departLane="best" departSpeed="max"/>
+</routes>

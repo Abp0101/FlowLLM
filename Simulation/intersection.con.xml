@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FlowLLM Phase 1: Simple 4-Way Intersection - Connection Definitions -->
+<!-- Each inbound edge connects to all three possible outbound edges (right, straight, left) -->
+<connections>
+    <!-- From North (heading south): right=west, straight=south, left=east -->
+    <connection from="north_to_center" to="center_to_west"  fromLane="0" toLane="0"/>
+    <connection from="north_to_center" to="center_to_south" fromLane="0" toLane="0"/>
+    <connection from="north_to_center" to="center_to_south" fromLane="1" toLane="1"/>
+    <connection from="north_to_center" to="center_to_east"  fromLane="1" toLane="0"/>
+
+    <!-- From South (heading north): right=east, straight=north, left=west -->
+    <connection from="south_to_center" to="center_to_east"  fromLane="0" toLane="0"/>
+    <connection from="south_to_center" to="center_to_north" fromLane="0" toLane="0"/>
+    <connection from="south_to_center" to="center_to_north" fromLane="1" toLane="1"/>
+    <connection from="south_to_center" to="center_to_west"  fromLane="1" toLane="0"/>
+
+    <!-- From East (heading west): right=north, straight=west, left=south -->
+    <connection from="east_to_center" to="center_to_north" fromLane="0" toLane="0"/>
+    <connection from="east_to_center" to="center_to_west"  fromLane="0" toLane="0"/>
+    <connection from="east_to_center" to="center_to_west"  fromLane="1" toLane="1"/>
+    <connection from="east_to_center" to="center_to_south" fromLane="1" toLane="0"/>
+
+    <!-- From West (heading east): right=south, straight=east, left=north -->
+    <connection from="west_to_center" to="center_to_south" fromLane="0" toLane="0"/>
+    <connection from="west_to_center" to="center_to_east"  fromLane="0" toLane="0"/>
+    <connection from="west_to_center" to="center_to_east"  fromLane="1" toLane="1"/>
+    <connection from="west_to_center" to="center_to_north" fromLane="1" toLane="0"/>
+</connections>
