@@ -7,7 +7,7 @@ to keep or switch the traffic light phase.
 
 The LLM receives the current intersection state (queue lengths,
 waiting times, phase info) and responds with a JSON decision:
-  {"action": "keep" or "switch", "duration": 10-60}
+  {"action": "keep" or "switch", "duration": 15-45}
 
 Usage:
     python Agent/llm_controller.py          # headless (sumo)
@@ -138,12 +138,14 @@ def collect_metrics(step: int) -> dict:
 # ---------------------------------------------------------------------------
 # Intersection state builder (sent to the LLM)
 # ---------------------------------------------------------------------------
-def build_intersection_state(step: int, lane_queues: dict, avg_wait: float) -> dict:
+def build_intersection_state(step: int, lane_queues: dict, avg_wait: float,
+                             phase_duration_elapsed: int) -> dict:
     """
     Build a compact state summary of the intersection for the LLM prompt.
 
     Groups lanes by direction (north, south, east, west) and reports
-    the total queue per direction plus the current phase and timing.
+    the total queue per direction plus the current phase, how long it
+    has been active, and the average waiting time.
     """
     # Group lane queues by direction (edge name prefix)
     direction_queues = {"north": 0, "south": 0, "east": 0, "west": 0}
@@ -162,6 +164,7 @@ def build_intersection_state(step: int, lane_queues: dict, avg_wait: float) -> d
         "phase_index": current_phase,
         "queue_lengths": direction_queues,
         "average_waiting_time": avg_wait,
+        "phase_active_seconds": phase_duration_elapsed,
     }
     return state
 
@@ -171,23 +174,62 @@ def build_intersection_state(step: int, lane_queues: dict, avg_wait: float) -> d
 # ---------------------------------------------------------------------------
 def build_llm_prompt(state: dict) -> str:
     """
-    Build a concise prompt that gives the LLM the current intersection state
-    and asks for a traffic light control decision in JSON format.
+    Build a detailed prompt that provides the LLM with full intersection
+    context, clear queue data, phase timing, and explicit prioritisation
+    instructions. Includes an example of the expected JSON response.
     """
+    q = state["queue_lengths"]
+    ns_total = q["north"] + q["south"]
+    ew_total = q["east"] + q["west"]
+
+    # Identify the most congested direction for the hint
+    busiest = max(q, key=q.get)
+
     prompt = (
-        "You are a traffic light controller for a 4-way intersection.\n"
-        f"Current state:\n"
-        f"- Time: {state['simulation_time']}s\n"
-        f"- Phase: {state['current_phase']}\n"
-        f"- Queue lengths: North={state['queue_lengths']['north']}, "
-        f"South={state['queue_lengths']['south']}, "
-        f"East={state['queue_lengths']['east']}, "
-        f"West={state['queue_lengths']['west']}\n"
-        f"- Avg waiting time: {state['average_waiting_time']:.1f}s\n\n"
-        "Decide: keep the current phase or switch to the next phase.\n"
-        "If switching, a 4s yellow transition will happen automatically.\n"
-        "Respond ONLY with JSON: {\"action\": \"keep\" or \"switch\", \"duration\": <10-60>}\n"
-        "duration = how many seconds to hold the phase after this decision."
+        # --- System context ------------------------------------------------
+        "You are an expert traffic signal controller optimising a single "
+        "4-way intersection. Your goal is to MINIMISE average vehicle "
+        "waiting time and prevent any single direction from building up "
+        "excessive queues.\n\n"
+
+        # --- Current intersection state -----------------------------------
+        "=== CURRENT INTERSECTION STATE ===\n"
+        f"Simulation time: {state['simulation_time']}s / 600s\n"
+        f"Current phase:   {state['current_phase']}\n"
+        f"Phase active for: {state['phase_active_seconds']}s\n"
+        f"Avg waiting time: {state['average_waiting_time']:.1f}s\n\n"
+
+        # --- Queue lengths clearly labelled --------------------------------
+        "=== QUEUE LENGTHS (vehicles waiting) ===\n"
+        f"  North approach: {q['north']} vehicles\n"
+        f"  South approach: {q['south']} vehicles\n"
+        f"  --> N-S corridor total: {ns_total}\n"
+        f"  East approach:  {q['east']} vehicles\n"
+        f"  West approach:  {q['west']} vehicles\n"
+        f"  --> E-W corridor total: {ew_total}\n"
+        f"  Busiest direction: {busiest.upper()} ({q[busiest]} vehicles)\n\n"
+
+        # --- Decision rules ------------------------------------------------
+        "=== DECISION RULES ===\n"
+        "1. If the CURRENT phase is GREEN for the corridor with the LONGEST "
+        "queues, KEEP it to let those vehicles clear.\n"
+        "2. If the OPPOSITE corridor has significantly more queued vehicles, "
+        "SWITCH to serve them.\n"
+        "3. Do NOT switch if the phase has been active for less than 15s "
+        "(too short causes inefficiency).\n"
+        "4. Do NOT keep a phase for more than 45s (starves the other "
+        "corridor).\n"
+        "5. Set duration based on queue size: larger queues need more "
+        "green time.\n\n"
+
+        # --- Response format -----------------------------------------------
+        "=== RESPOND WITH ONLY THIS JSON (no explanation) ===\n"
+        '{"action": "keep" or "switch", "duration": <15-45>}\n\n'
+
+        # --- Example -------------------------------------------------------
+        "Example: if NS is green and North has 12, South has 8, East has 3, "
+        "West has 2, you should keep NS green:\n"
+        '{"action": "keep", "duration": 30}\n'
     )
     return prompt
 
@@ -272,12 +314,12 @@ def parse_llm_response(raw_text: str) -> dict:
         action = "keep"
 
     try:
-        duration = int(decision.get("duration", 10))
+        duration = int(decision.get("duration", 20))
     except (ValueError, TypeError):
-        duration = 10
+        duration = 20
 
-    # Clamp duration to the allowed range [10, 60]
-    duration = max(10, min(60, duration))
+    # Clamp duration to the allowed range [15, 45]
+    duration = max(15, min(45, duration))
 
     return {"action": action, "duration": duration}
 
@@ -340,6 +382,10 @@ def run_simulation(use_gui: bool):
     total_departed = 0
     total_arrived  = 0
 
+    # Track how long the current phase has been active
+    last_phase      = -1      # previous phase index (init to impossible value)
+    phase_start_step = 0      # step when the current phase started
+
     print(f"[FlowLLM-LLM] Running LLM-controlled simulation for {SIM_END}s")
     print(f"[FlowLLM-LLM] LLM query interval: every {LLM_QUERY_INTERVAL} steps")
     print(f"[FlowLLM-LLM] Model: {OLLAMA_MODEL} @ {OLLAMA_URL}")
@@ -359,13 +405,21 @@ def run_simulation(use_gui: bool):
         total_departed += traci.simulation.getDepartedNumber()
         total_arrived  += traci.simulation.getArrivedNumber()
 
+        # Track phase duration for the LLM prompt
+        current_phase_now = traci.trafficlight.getPhase(TL_ID)
+        if current_phase_now != last_phase:
+            phase_start_step = step
+            last_phase = current_phase_now
+        phase_duration_elapsed = step - phase_start_step
+
         # ----------------------------------------------------------
         # Query the LLM every LLM_QUERY_INTERVAL steps
         # ----------------------------------------------------------
         if step > 0 and step % LLM_QUERY_INTERVAL == 0:
             # Build the intersection state for the LLM
             state = build_intersection_state(
-                step, lane_queues, step_metrics["avg_waiting_time"]
+                step, lane_queues, step_metrics["avg_waiting_time"],
+                phase_duration_elapsed
             )
 
             # Build the prompt and query Ollama
