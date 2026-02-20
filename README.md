@@ -42,24 +42,33 @@ FlowLLM/
 │   └── llm_metrics.csv
 ├── Dashboard/
 │   └── app.py           # Streamlit visualisation
-└── Evaluation/
+├── Evaluation/
+├── requirements.txt
+└── LICENSE
+```
+
+## Prerequisites
+
+**1. Install SUMO**
+Download and install from https://sumo.dlr.de/docs/Downloads.php
+
+**2. Install Ollama**
+Download from https://ollama.com then pull the model:
+```bash
+ollama pull llama3.1:8b
 ```
 
 ## Setup
 
-**Requirements:**
-- Python 3.9+
-- SUMO 1.24.0+
-- Ollama with Llama 3.1 8B
-
-**Install dependencies:**
+**Clone the repo:**
 ```bash
-pip install traci sumolib streamlit pandas plotly requests
+git clone https://github.com/Abp0101/FlowLLM.git
+cd FlowLLM
 ```
 
-**Pull the model:**
+**Install Python dependencies:**
 ```bash
-ollama pull llama3.1:8b
+pip install -r requirements.txt
 ```
 
 ## Running
