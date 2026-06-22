@@ -7,7 +7,22 @@
 ![Ollama](https://img.shields.io/badge/Ollama-Llama3.1_8B-orange)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-## Results
+## Why this is an AI control agent
+
+FlowLLM is a closed-loop AI control agent for traffic signal optimisation. It observes the simulated intersection state, asks a locally hosted LLM to choose a signal-control action, applies that action through TraCI, and measures the resulting traffic performance against a fixed-cycle baseline.
+
+Agent loop:
+
+1. SUMO simulates traffic flow at a four-way intersection
+2. TraCI reads live queue lengths, waiting times and signal state
+3. The LLM receives the current traffic state as a structured prompt
+4. The model returns a JSON decision: keep or switch phase, plus duration
+5. TraCI applies the decision to the traffic light
+6. Metrics are logged and compared against the fixed-cycle controller
+
+This demonstrates autonomous decision-making within a simulation, environment feedback, structured model outputs and metric-driven evaluation.
+
+## Prototype results
 
 | Metric | Fixed-Cycle Baseline | LLM Controller | Improvement |
 |--------|---------------------|----------------|-------------|
@@ -15,11 +30,23 @@
 | Avg Queue Length | 91.6 | 69.5 | **24% shorter** |
 | Vehicles Processed | 278 | 288 | **+10 vehicles** |
 
+These figures are results from the current prototype comparison, not evidence of performance in a physical traffic system. The saved 600-step CSVs reproduce the average waiting-time and queue-length figures. Vehicle throughput is calculated by the controller during a run and printed in its summary, but is not yet persisted in the metrics CSV.
+
+## Evaluation focus
+
+- The fixed-cycle controller provides the baseline using a 70-second cycle: 31 seconds green and 4 seconds yellow for each corridor.
+- The LLM controller is evaluated using average waiting time, average queue length and vehicles processed during the simulation.
+- Per-step metrics are saved to CSV, making the waiting-time and queue-length comparison inspectable and reproducible for the included simulation configuration.
+- Current results should be treated as prototype results, not as a production traffic-control claim.
+- Future evaluation should use repeated random seeds, confidence intervals and comparison against adaptive non-LLM baselines.
+
+See [Architecture](docs/architecture.md), [Evaluation](docs/evaluation.md), [Limitations](docs/limitations.md) and [Roadmap](docs/roadmap.md) for the detailed system design and evaluation boundaries.
+
 ## Overview
 
-FlowLLM replaces traditional fixed-cycle traffic lights with a locally-run LLM (Llama 3.1 8B via Ollama) that dynamically adjusts signal timing based on real-time queue data. The LLM receives the current intersection state every 10 simulation steps and decides whether to switch phases and for how long.
+FlowLLM compares a fixed-cycle traffic-light controller with a locally run LLM controller (Llama 3.1 8B via Ollama) that adjusts simulated signal timing based on current queue data. The LLM receives the intersection state every 10 simulation steps and decides whether to switch phases and for how long.
 
-The entire system runs locally — no API costs, no cloud dependency.
+The default setup runs model inference locally through Ollama, without a hosted model API.
 
 ## How It Works
 
@@ -90,16 +117,13 @@ streamlit run Dashboard/app.py
 
 ## Key Design Decisions
 
-- **Local LLM only** — keeps the project fully free and reproducible by anyone with a decent GPU
-- **Prompt engineering matters** — v1 of the prompt performed worse than baseline; v2 with explicit traffic rules and JSON formatting beat it on all metrics
-- **Stepped simulation** — SUMO runs in lockstep with the LLM rather than real time, avoiding latency issues
+- **Local LLM inference** — keeps prompts and model execution on the local Ollama service by default.
+- **Structured decisions** — the prompt requests a JSON action and duration; the controller validates actions, clamps durations and falls back to a keep decision when inference fails.
+- **Stepped simulation** — SUMO advances in simulation steps, so the prototype does not establish real-time physical control performance.
 
 ## Future Work
 
-- Extend to a multi-intersection grid network
-- Fine-tune a smaller model specifically on traffic control data
-- Add reinforcement learning to improve decisions over time
-- Test with real-world traffic flow data from open datasets
+The prioritised engineering and evaluation work is tracked in the [roadmap](docs/roadmap.md).
 
 ## Tech Stack
 
